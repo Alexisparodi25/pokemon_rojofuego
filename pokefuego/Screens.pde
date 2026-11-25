@@ -54,6 +54,7 @@ class TitleScene extends Scene {
     ArrayList<String> l = new ArrayList<String>();
     l.add("Nueva partida");
     if (hasSave()) l.add("Continuar");
+    l.add("Importar sprites de tu ROM");
     l.add("Ayuda");
     l.add("Salir");
     m.set(l); m.visible = l.size();
@@ -70,8 +71,8 @@ class TitleScene extends Scene {
     txtc("ROJO FUEGO", width / 2, 135, fTitle, color(255, 255, 255));
     txtc("EDICIÓN TOTAL", width / 2, 215, fBig, color(255, 220, 120));
     txtc("Todas las especies · Todas las megas · Dinamax · Aleatorio · Nuzlocke · Difícil", width / 2, 262, fSmall, color(255, 240, 220));
-    panel(width / 2 - 170, 340, 340, 40 + m.items.size() * 40);
-    m.draw(width / 2 - 160, 352, 320, 40);
+    panel(width / 2 - 200, 330, 400, 40 + m.items.size() * 40);
+    m.draw(width / 2 - 190, 342, 380, 40);
     txtc(Dex.species.size() + " especies/formas · " + Dex.moves.size() + " movimientos · " + Dex.abilities.size() + " habilidades · " + Dex.items.size() + " objetos", width / 2, height - 60, fSmall, color(255, 230, 200));
   }
   void key(int k, char c) {
@@ -80,6 +81,7 @@ class TitleScene extends Scene {
       String s = m.items.get(m.sel);
       if (s.equals("Nueva partida")) pushScene(new NewGameScene());
       else if (s.equals("Ayuda")) pushScene(new HelpScene());
+      else if (s.equals("Importar sprites de tu ROM")) pickRom();
       else if (s.equals("Continuar")) {
         if (loadGame()) { stack.clear(); pushScene(new MapScene()); say("Partida cargada."); } else say("No se pudo cargar la partida.");
       } else exit();

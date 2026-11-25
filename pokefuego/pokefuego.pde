@@ -259,7 +259,7 @@ void fetchSprite(final String key, final String[] urls, final File out) {
         if (b != null && b.length > 80) { out.getParentFile().mkdirs(); saveBytes(out, b); ok = true; break; }
       } catch (Exception e) { }
     }
-    synchronized (spritePending) { spriteActive--; spritePending.remove(key); if (!ok) spriteMissing.add(key); }
+    synchronized (spritePending) { spriteActive--; spritePending.remove(key); if (!ok) { spriteMissing.add(key); println("Sin sprite para " + key + " (¿sin internet?). Puedes importarlos de tu ROM desde el título."); } }
   } }).start();
 }
 
@@ -294,25 +294,18 @@ void drawCreature(Species s, float cx, float cy, float size, boolean back, boole
     image(im, -w / 2, size * 0.5f - h, w, h);
     noTint();
   } else {
-    int c1 = typeColor(s.t1), c2 = s.t2.isEmpty() ? lerpColor(c1, color(255), 0.35f) : typeColor(s.t2);
-    int h = abs(s.num * 31 + s.name.length() * 7);
-    float w = size * (0.75f + (h % 5) * 0.06f), hh = size * (0.7f + ((h / 5) % 5) * 0.07f);
+    // sin sprite (aún descargándose, o sin conexión): una Poké Ball limpia con el número de la Pokédex
+    float r = size * 0.42f;
     noStroke();
-    fill(red(c1), green(c1), blue(c1), alpha);
-    ellipse(0, 0, w, hh);
-    fill(red(c2), green(c2), blue(c2), alpha);
-    // orejas / apéndices según hash
-    int shape = h % 4;
-    if (shape == 0) { triangle(-w * 0.35f, -hh * 0.3f, -w * 0.15f, -hh * 0.75f, 0, -hh * 0.42f); triangle(w * 0.35f, -hh * 0.3f, w * 0.15f, -hh * 0.75f, 0, -hh * 0.42f); }
-    else if (shape == 1) { ellipse(-w * 0.38f, -hh * 0.38f, w * 0.28f, w * 0.28f); ellipse(w * 0.38f, -hh * 0.38f, w * 0.28f, w * 0.28f); }
-    else if (shape == 2) { rect(-w * 0.08f, -hh * 0.75f, w * 0.16f, hh * 0.4f, 6); }
-    else { ellipse(w * 0.45f, hh * 0.1f, w * 0.4f, hh * 0.18f); }
-    ellipse(0, hh * 0.18f, w * 0.62f, hh * 0.4f);
-    fill(255, alpha); ellipse(-w * 0.17f, -hh * 0.08f, w * 0.2f, w * 0.2f); ellipse(w * 0.17f, -hh * 0.08f, w * 0.2f, w * 0.2f);
-    fill(20, alpha); ellipse(-w * 0.15f + (back ? 0 : 0), -hh * 0.08f, w * 0.09f, w * 0.09f); ellipse(w * 0.19f, -hh * 0.08f, w * 0.09f, w * 0.09f);
-    if (back) { fill(red(c1) * 0.7f, green(c1) * 0.7f, blue(c1) * 0.7f, alpha); ellipse(0, -hh * 0.05f, w * 0.7f, hh * 0.65f); }
-    fill(255, 255, 255, 170 * alpha / 255.0f); textFont(fSmall); textAlign(CENTER, CENTER);
-    text("#" + s.num, 0, hh * 0.42f);
+    fill(0, 50 * alpha / 255.0f); ellipse(0, size * 0.5f, r * 1.6f, r * 0.35f);
+    float bob = sin(tick * 0.08f + s.num) * 2;
+    translate(0, bob);
+    fill(225, 60, 60, alpha); arc(0, 0, r * 2, r * 2, PI, TWO_PI, CHORD);
+    fill(245, 245, 245, alpha); arc(0, 0, r * 2, r * 2, 0, PI, CHORD);
+    stroke(30, alpha); strokeWeight(max(2.0f, r * 0.08f)); noFill(); ellipse(0, 0, r * 2, r * 2); line(-r, 0, r, 0);
+    fill(245, alpha); ellipse(0, 0, r * 0.62f, r * 0.62f); noFill(); ellipse(0, 0, r * 0.62f, r * 0.62f);
+    noStroke();
+    fill(230, alpha); textFont(fSmall); textAlign(CENTER, CENTER); text("#" + s.num, 0, r * 1.5f);
   }
   popMatrix();
 }
@@ -412,4 +405,19 @@ class ChoiceScene extends Scene {
     if (k == K_OK) { popScene(); cbs[m.sel].run(); }
     else if (k == K_BACK) popScene();
   }
+}
+
+// ---- importar sprites oficiales desde tu ROM de Rojo Fuego / Verde Hoja ----
+void pickRom() { selectInput("Elige tu ROM de Pokémon Rojo Fuego o Verde Hoja (.gba)", "romSelected"); }
+
+void romSelected(final File f) {
+  if (f == null) return;
+  say("Importando sprites del ROM...");
+  new Thread(new Runnable() { public void run() {
+    try {
+      int n = SpriteExtractor.extract(loadBytes(f.getAbsolutePath()), new File(sketchPath("data/sprites")));
+      spriteCache.clear(); spriteK.clear(); spriteMissing.clear();
+      say("¡Listo! " + n + " Pokémon importados (frente y espalda).");
+    } catch (Throwable t) { say("No se pudo importar: " + t.getMessage()); println(t); }
+  } }).start();
 }

@@ -69,7 +69,7 @@ El **motor de combate es propio** y no implementa el 100 % de las mecánicas de 
   Muchos objetos "de nicho" existen pero no tienen efecto en combate.
 - **Combates 1 vs 1** (sin dobles).
 - **Idioma:** movimientos, habilidades y objetos se muestran en español con su descripción (extraídos de [WikiDex](https://www.wikidex.net/) con `tools/fetch_wikidex.py`; ~96 % de movimientos, 97 % de habilidades y 82 % de objetos; lo que falta, como las MT genéricas, queda en inglés). Los nombres de especies son los internacionales.
-- **Sprites:** el juego los descarga solo la primera vez que aparece cada Pokémon (hace falta internet) desde Pokémon Showdown y los guarda en `pokefuego/data/sprites/`: los de **Gen 3** (estilo Rojo Fuego) para los Pokémon 1-386 y los de **Gen 5** para megas, formas y Pokémon posteriores. Son material de Nintendo/Game Freak, por eso no están incluidos en el repositorio. Mientras llegan, o sin conexión, se dibuja una criatura generada por tipo.
+- **Sprites oficiales:** en el título elige **«Importar sprites de tu ROM»** y selecciona tu ROM de Pokémon Rojo Fuego o Verde Hoja (`.gba`, tu propia copia): el juego extrae los sprites oficiales de frente y espalda de los Pokémon 1-386 a `pokefuego/data/sprites/` (sólo en tu equipo; esa carpeta está en `.gitignore` porque son material de Nintendo/Game Freak). Para el resto (Gen 4 en adelante, megas y formas) intenta descargarlos de Pokémon Showdown; si no puede, muestra una Poké Ball con el número.
 
 ## Estructura
 ```
