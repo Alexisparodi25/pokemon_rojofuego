@@ -1,5 +1,12 @@
 # Pokémon Rojo Fuego — Edición Total
 
+> ## ▶ Versión web (recomendada): [`docs/`](docs/)
+> Juego **caminable** en el navegador (mapas de Kanto, hierba alta, entrenadores que te ven, Centro Pokémon con taza y caramelos,
+> tienda, PC, Pokédex, menú START...). Abre [`docs/index.html`](docs/index.html) con doble clic, o publica la carpeta `/docs` con GitHub Pages.
+> Detalles y controles: [`docs/README.md`](docs/README.md).
+>
+> La versión de **Processing** (`pokefuego/`, más abajo) es la primera versión del juego, con menús sobre un mapa; comparte el motor y los datos.
+
 Un juego de Pokémon por turnos basado en **Rojo Fuego / Kanto**: 8 gimnasios, Alto Mando y Campeón.
 Usa **todas las especies y formas de todas las generaciones, todas las megaevoluciones, movimientos,
 habilidades y objetos**, pero con **únicamente dos mecánicas especiales: Megaevolución y Dinamax/Gigamax**,
@@ -85,6 +92,8 @@ engine/                    código fuente del motor (Java, paquete pokefuego.eng
 tools/
   build_engine.sh    recompila engine/ -> pokefuego/code/pokefuego-engine.jar
   export_data.js     regenera los datos desde @pkmn/dex (npm i && node export_data.js)
+  build_web.sh / build_web_data.js   compilan el motor a JavaScript (TeaVM) y empaquetan los datos para docs/
+  web_smoke_test.js  prueba de humo del juego web (Playwright)
   fetch_wikidex.py   traducciones al español desde WikiDex (data/es_*.tsv)
   check.sh           simula miles de combates IA vs IA
   PlaySim.java       bot que juega partidas completas

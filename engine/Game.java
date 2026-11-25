@@ -439,7 +439,7 @@ public class Game {
     public List<Object[]> learn = new ArrayList<Object[]>();       // {Mon, moveId}
     public List<Object[]> evolve = new ArrayList<Object[]>();      // {Mon, Species}
     public boolean won, lost, fled, captured, gameOver;
-    public Mon capturedMon; String capturedWhere = "";
+    public Mon capturedMon; public String capturedWhere = "";
     public int money;
   }
 

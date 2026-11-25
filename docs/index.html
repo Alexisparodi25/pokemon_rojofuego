@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pokémon Rojo Fuego — Edición Total</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070d; overflow: hidden; touch-action: none; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #wrap { position: relative; }
+  canvas { display: block; background: #101428; image-rendering: pixelated; box-shadow: 0 0 40px #000; }
+  #touch { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 34vh; pointer-events: none; }
+  .tb { position: absolute; pointer-events: auto; width: 14vmin; height: 14vmin; max-width: 70px; max-height: 70px; border-radius: 50%; background: rgba(255,255,255,.18); color: #fff; font: bold 22px sans-serif; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; }
+  .tb:active { background: rgba(255,255,255,.4); }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="screen"></canvas></div>
+<div id="touch">
+  <div class="tb" data-k="up" style="left:16vmin;bottom:24vmin">▲</div>
+  <div class="tb" data-k="down" style="left:16vmin;bottom:4vmin">▼</div>
+  <div class="tb" data-k="left" style="left:3vmin;bottom:14vmin">◀</div>
+  <div class="tb" data-k="right" style="left:29vmin;bottom:14vmin">▶</div>
+  <div class="tb" data-k="a" style="right:4vmin;bottom:18vmin">A</div>
+  <div class="tb" data-k="b" style="right:20vmin;bottom:8vmin">B</div>
+  <div class="tb" data-k="start" style="right:4vmin;bottom:2vmin;width:11vmin;height:8vmin;border-radius:12px;font-size:14px">MENÚ</div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/core.js"></script>
+<script src="js/art.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/menus.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/world.js"></script>
+<script src="js/import.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
