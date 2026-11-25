@@ -421,3 +421,18 @@ void romSelected(final File f) {
     } catch (Throwable t) { say("No se pudo importar: " + t.getMessage()); println(t); }
   } }).start();
 }
+
+// ---- importar sprites desde la carpeta de Pokémon Añil (o cualquier juego de Pokémon Essentials) ----
+void pickAnil() { selectFolder("Elige la carpeta de Pokémon Añil (la que contiene Graphics y PBS)", "anilSelected"); }
+
+void anilSelected(final File f) {
+  if (f == null) return;
+  say("Importando sprites de la carpeta...");
+  new Thread(new Runnable() { public void run() {
+    try {
+      int n = AnilImporter.extract(f, new File(sketchPath("data/sprites")));
+      spriteCache.clear(); spriteK.clear(); spriteMissing.clear();
+      say("¡Listo! " + n + " sprites importados (frente y espalda, con megas y formas).");
+    } catch (Throwable t) { say("No se pudo importar: " + t.getMessage()); println(t); }
+  } }).start();
+}
