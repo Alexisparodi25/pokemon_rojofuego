@@ -40,6 +40,7 @@ public class Mon {
   public int tauntTurns, lockTurns, confusionTurns, protectCount, turnsOut, recharge, toxicCounter;
   public String chargingMove = "";   // movimiento a dos turnos
   public String lastMove = "";
+  public boolean fixedAbility;   // habilidad asignada por el modo aleatorio
   public String abilityOverride = null, origAbility = null;
   public boolean disguiseBroken, flashFireOn, truantSkip;
   public int lastDamageTaken; public String lastDamageCat = ""; public boolean tookDamageThisTurn;
@@ -248,7 +249,7 @@ public class Mon {
     String[] a = to.abilities;
     boolean slot0 = Dex.toId(ability).equals(Dex.toId(a[0]));
     boolean slot1 = Dex.toId(ability).equals(Dex.toId(a[1]));
-    if (!slot0 && !slot1 && !Dex.toId(ability).equals(Dex.toId(a[2]))) ability = a[0].isEmpty() ? ability : a[0];
+    if (!fixedAbility && !slot0 && !slot1 && !Dex.toId(ability).equals(Dex.toId(a[2]))) ability = a[0].isEmpty() ? ability : a[0];
     recalc(false);
     checkItemForme();
   }

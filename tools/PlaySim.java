@@ -49,7 +49,7 @@ public class PlaySim {
     int runs = args.length > 0 ? Integer.parseInt(args[0]) : 6;
     int fails = 0;
     for (int run = 0; run < runs; run++) {
-      Rules r = new Rules(); r.random = (run & 1) == 1; r.nuzlocke = (run & 2) == 2;
+      Rules r = new Rules(); r.setRandom((run & 1) == 1); r.nuzlocke = (run & 2) == 2; r.difficulty = (run >> 2) % 3; if (run >= 4) { r.abilities = 1 + run % 2; r.moves = 2; }
       Game g = new Game(r, 1000 + run);
       List<String> ch = g.starterChoices();
       g.chooseStarter(ch.get(run % 3));
@@ -101,7 +101,7 @@ public class PlaySim {
       boolean okSave = g2 != null && g2.party.size() == g.party.size() && g2.placeIdx == g.placeIdx && g2.money == g.money;
       StringBuilder sb = new StringBuilder();
       for (Mon m : g.party) sb.append(m.name()).append(" L").append(m.level).append(m.dead ? "†" : "").append(", ");
-      System.out.println("run" + run + " random=" + r.random + " nuz=" + r.nuzlocke + " lugar=" + g.place().name + " medallas=" + g.badges + " campeón=" + g.champion
+      System.out.println("run" + run + " random=" + r.isRandom() + " dif=" + r.difficulty + " hab=" + r.abilities + " mov=" + r.moves + " nuz=" + r.nuzlocke + " lugar=" + g.place().name + " medallas=" + g.badges + " campeón=" + g.champion
         + " gameover=" + g.gameOver + " combates=" + battles + " capturas=" + caught + " muertos=" + g.graveyard.size() + " guardado=" + okSave + "\n   " + sb);
       if (!okSave) fails++;
     }

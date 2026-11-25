@@ -17,6 +17,9 @@ public class Game {
   public Set<String> owned = new HashSet<String>();      // especies base capturadas / vistas (Nuzlocke duplicados)
   public Set<String> dex = new HashSet<String>();        // Pokédex: especies vistas/capturadas
   public int battlesWon, deaths, steps;
+  public Set<String> caught = new HashSet<String>();   // especies capturadas / obtenidas (Pokédex completa)
+  public String playerName = "Rojo", rivalName = "Azul";
+  public int look0 = 0, look1 = 0, look2 = 0;           // gorra, camiseta, pelo
 
   // ------------------------------------------------------------
   //  nueva partida
@@ -30,7 +33,7 @@ public class Game {
 
   public List<String> starterChoices() {
     List<String> out = new ArrayList<String>();
-    if (!rules.random) { out.add("bulbasaur"); out.add("charmander"); out.add("squirtle"); return out; }
+    if (!rules.randomStarters) { out.add("bulbasaur"); out.add("charmander"); out.add("squirtle"); return out; }
     List<Species> cand = new ArrayList<Species>();
     for (Species s : Dex.basePool) if (s.prevo.isEmpty() && !s.evos.isEmpty() && s.bst() <= 340 && !s.legendary() && !s.past) cand.add(s);
     while (out.size() < 3) { Species s = cand.get(rng.nextInt(cand.size())); if (!out.contains(s.id)) out.add(s.id); }
@@ -41,13 +44,19 @@ public class Game {
     starterId = id;
     Mon m = Mon.create(Dex.sp(id), 5, rng);
     m.pickAbility(rng, false);
+    randomize(m);
     m.item = "";
     m.origin = places.get(0).name;
     party.add(m);
     own(m);
   }
 
-  public void own(Mon m) { owned.add(Dex.toId(rootOf(m.normalSp).id)); dex.add(m.normalSp.id); }
+  public void own(Mon m) { owned.add(Dex.toId(rootOf(m.normalSp).id)); dex.add(m.normalSp.id); caught.add(m.normalSp.id); }
+
+  /** Aplica el nombre del rival a sus combates. */
+  public void applyNames() {
+    for (Place p : places) { if (p.boss != null && p.boss.rival) p.boss.name = rivalName; for (Trainer t : p.bossChain) if (t.rival) t.name = rivalName; }
+  }
 
   public static Species rootOf(Species s) {
     int g = 0;
@@ -134,10 +143,10 @@ public class Game {
       Species s;
       if (fullRandom) {
         s = Dex.basePool.get(rng.nextInt(Dex.basePool.size()));
-        if (s.restricted() && level < 45) continue;
-        if (s.legendary() && level < 30) continue;
+        if (rules.legendaries == 0 && s.legendary()) continue;
+        if (rules.legendaries == 1) { if (s.restricted() && level < 45) continue; if (s.legendary() && level < 30) continue; }
         double b = s.bst();
-        if (Math.abs(b - target) > tol + attempt / 10.0) continue;
+        if (rules.similarBst && Math.abs(b - target) > tol + attempt / 10.0) continue;
         if (s.past && s.num > 10000) continue;
         return s;
       }
@@ -158,13 +167,31 @@ public class Game {
   public Mon makeMon(Species s, int level, boolean trainerMon, boolean smart) {
     Mon m = Mon.create(s, level, rng);
     if (trainerMon) {
-      int ev = Math.min(84, badges * 11);
-      for (int i = 0; i < 6; i++) { m.iv[i] = badges >= 2 ? 31 : 22 + rng.nextInt(10); m.ev[i] = ev; }
-      if (badges >= 1) m.pickAbility(rng, true);
+      int d = rules.difficulty;
+      int ev = d == 0 ? Math.min(40, badges * 5) : d == 1 ? Math.min(84, badges * 11) : 84;
+      for (int i = 0; i < 6; i++) { m.iv[i] = d == 2 || (d == 1 && badges >= 2) ? 31 : 15 + rng.nextInt(17); m.ev[i] = ev; }
+      if (badges >= 1 || d == 2) m.pickAbility(rng, true);
       m.recalc(true);
     }
-    if (smart || rules.random) m.setMoves(MoveGen.smartSet(m.normalSp, level, rng));
+    if (smart || rules.moves == 1) m.setMoves(MoveGen.smartSet(m.normalSp, level, rng));
+    randomize(m);
     return m;
+  }
+
+  /** Aplica las opciones aleatorias de habilidades y movimientos a un Pokémon recién creado. */
+  public void randomize(Mon m) {
+    if (rules.moves == 2) m.setMoves(MoveGen.chaos(rng));
+    if (rules.abilities > 0) {
+      String ab = rules.abilities == 2 ? Effects.FUNCTIONAL[rng.nextInt(Effects.FUNCTIONAL.length)] : randomAnyAbility();
+      AbilityDef d = Dex.ab(ab);
+      m.ability = d != null ? d.name : ab; m.fixedAbility = true;
+    }
+  }
+
+  List<String> abilityNames;
+  String randomAnyAbility() {
+    if (abilityNames == null) { abilityNames = new ArrayList<String>(); for (AbilityDef d : Dex.abilities.values()) if (!d.id.isEmpty() && !d.name.equals("No Ability")) abilityNames.add(d.name); Collections.sort(abilityNames); }
+    return abilityNames.get(rng.nextInt(abilityNames.size()));
   }
 
   public static final String[] ITEMS_PHYS = {"choiceband", "lifeorb", "leftovers", "sitrusberry", "focussash", "expertbelt", "muscleband"};
@@ -237,14 +264,16 @@ public class Game {
       String[] themeMon = routeTheme(t.cls, pl);
       for (int i = 0; i < n; i++) {
         int lv = Math.min(pl.maxLv + 2, pl.minLv + 1 + rng.nextInt(Math.max(1, pl.maxLv - pl.minLv + 2)) + (hardBonus()));
-        Species s = randomSpecies(lv, themeMon, rules.random, 0);
+        Species s = randomSpecies(lv, themeMon, rules.randomTrainers, 0);
         team.add(new TMon(s.id, lv, "", i == n - 1));
       }
       t.reward = team.get(team.size() - 1).level * 35;
     }
     if (t.boss) t.reward = t.maxLevel() * (t.key.startsWith("c") ? 300 : 150);
+    int lb = rules.difficulty == 0 ? -1 : rules.difficulty == 2 ? 3 : 0;
+    if (lb != 0 && !t.key.equals("v0")) for (TMon tm : team) tm.level = Math.max(2, tm.level + lb);
     // modo aleatorio: especies reemplazadas
-    if (rules.random && (t.boss)) {
+    if (rules.randomTrainers && (t.boss)) {
       for (TMon tm : team) {
         Species o = Dex.sp(tm.species);
         Species s = randomSpecies(tm.level, null, true, o == null ? 0 : o.bst());
@@ -321,6 +350,7 @@ public class Game {
 
   /** Tope de nivel: el as del próximo jefe (se resta un poco para dificultad). */
   public int levelCap() {
+    if (!rules.levelCap) return 100;
     for (int i = placeIdx; i < places.size(); i++) {
       Place p = places.get(i);
       if (p.boss != null && !p.boss.done) {
@@ -338,7 +368,7 @@ public class Game {
   //  combates
   // ------------------------------------------------------------
   public Side playerSide() {
-    Side s = new Side(); s.name = "Tú"; s.human = true;
+    Side s = new Side(); s.name = playerName; s.human = true;
     s.party.addAll(party);
     return s;
   }
@@ -351,12 +381,12 @@ public class Game {
     int lv = p.minLv + rng.nextInt(Math.max(1, p.maxLv - p.minLv + 1));
     Species s = null;
     for (int tries = 0; tries < 40; tries++) {
-      s = randomSpecies(lv, rules.random ? null : p.theme, rules.random, 0);
-      if (rules.nuzlocke && firstEncounter && owned.contains(Dex.toId(rootOf(s).id))) { s = null; continue; }   // cláusula de duplicados
+      s = randomSpecies(lv, rules.randomWild ? null : p.theme, rules.randomWild, 0);
+      if (rules.nuzlocke && rules.dupesClause && firstEncounter && owned.contains(Dex.toId(rootOf(s).id))) { s = null; continue; }   // cláusula de duplicados
       break;
     }
-    if (s == null) s = randomSpecies(lv, p.theme, rules.random, 0);
-    Mon m = makeMon(s, lv, false, rules.random);
+    if (s == null) s = randomSpecies(lv, p.theme, rules.randomWild, 0);
+    Mon m = makeMon(s, lv, false, false);
     m.pickAbility(rng, rng.nextInt(10) == 0);
     m.origin = p.name;
     return m;
@@ -364,12 +394,12 @@ public class Game {
 
   public Battle wildBattle() {
     Place p = place();
-    boolean first = rules.nuzlocke && !p.encounterUsed;
+    boolean first = rules.nuzFirst() && !p.encounterUsed;
     Mon w = wildMon(first);
-    if (rules.nuzlocke) p.encounterUsed = true;
+    if (rules.nuzFirst()) p.encounterUsed = true;
     Side e = new Side(); e.name = "salvaje"; e.party.add(w);
     Battle b = new Battle(playerSide(), e, true, new Random(rng.nextLong()));
-    b.bag = bag; b.owned = owned; b.nuzlockeNoCatch = rules.nuzlocke && !first;
+    b.bag = bag; b.owned = owned; b.nuzlockeNoCatch = rules.nuzFirst() && !first; b.catchMult = rules.difficulty == 0 ? 1.0 : rules.difficulty == 1 ? 0.85 : 0.7;
     b.catchEnc = first;
     dex.add(w.normalSp.id);
     return b;
@@ -380,7 +410,10 @@ public class Game {
     prepare(t, p);
     Side e = new Side(); e.name = t.full(); e.trainer = true;
     int aceIdx = t.team.size() - 1;
-    boolean canT = (t.boss && !t.key.equals("v0") && (badges >= 2 || !t.key.startsWith("g"))) || p.minLv >= 20;
+    boolean canT;
+    if (rules.difficulty == 0) canT = t.boss && !t.key.equals("v0") && badges >= 4;
+    else if (rules.difficulty == 1) canT = (t.boss && !t.key.equals("v0") && (badges >= 2 || !t.key.startsWith("g"))) || p.minLv >= 20;
+    else canT = !t.key.equals("v0");
     for (int i = 0; i < t.team.size(); i++) {
       TMon tm = t.team.get(i);
       boolean ace = canT && i == aceIdx;
@@ -416,10 +449,10 @@ public class Game {
     int cap = levelCap();
     // sincronizar de vuelta
     for (Mon m : b.sides[0].party) {
-      if (m.fainted() && rules.nuzlocke && !m.dead) { m.dead = true; }
+      if (m.fainted() && rules.nuzDeath() && !m.dead) { m.dead = true; }
     }
     for (Mon m : b.sides[0].party) { m.endBattle(); }
-    if (rules.nuzlocke) moveDeadToGraveyard();
+    if (rules.nuzDeath()) moveDeadToGraveyard();
     if (b.winner == 2 && b.caught && b.caughtMon != null) {
       Mon c = b.caughtMon;
       c.endBattle();
@@ -510,7 +543,7 @@ public class Game {
   public boolean holding(String id) { for (Mon m : party) if (Dex.toId(m.item).equals(id)) return true; for (Mon m : box) if (Dex.toId(m.item).equals(id)) return true; return false; }
 
   public void handleWhiteout(Result r) {
-    if (rules.nuzlocke) {
+    if (rules.nuzDeath()) {
       boolean anyAlive = false;
       for (Mon m : party) if (m.alive()) anyAlive = true;
       for (Mon m : box) if (m.alive()) anyAlive = true;
@@ -677,14 +710,18 @@ public class Game {
     String[] pp = p[14].split(",");
     for (int i = 0; i < m.pp.length && i < pp.length; i++) if (!pp[i].isEmpty()) m.pp[i] = Integer.parseInt(pp[i]);
     m.origin = p.length > 15 ? p[15] : "";
+    { String ai = Dex.toId(m.ability); String[] sl = s.abilities; m.fixedAbility = !ai.isEmpty() && !ai.equals(Dex.toId(sl[0])) && !ai.equals(Dex.toId(sl[1])) && !ai.equals(Dex.toId(sl[2])); }
     m.checkItemForme();
     return m;
   }
 
   public List<String> serialize() {
     List<String> o = new ArrayList<String>();
-    o.add("G|" + (rules.random ? 1 : 0) + "|" + (rules.nuzlocke ? 1 : 0) + "|" + placeIdx + "|" + money + "|" + badges + "|" + seed + "|" + starterId + "|" + (gameOver ? 1 : 0) + "|" + battlesWon + "|" + deaths);
-    StringBuilder sb = new StringBuilder("BAG|");
+    o.add("G|" + (rules.isRandom() ? 1 : 0) + "|" + (rules.nuzlocke ? 1 : 0) + "|" + placeIdx + "|" + money + "|" + badges + "|" + seed + "|" + starterId + "|" + (gameOver ? 1 : 0) + "|" + battlesWon + "|" + deaths);
+    o.add("RULES|" + rules.serialize());
+    o.add("NAME|" + playerName + "|" + rivalName + "|" + look0 + "|" + look1 + "|" + look2);
+    StringBuilder sb = new StringBuilder("CAUGHT|"); for (String s : caught) sb.append(s).append(','); o.add(sb.toString());
+    sb = new StringBuilder("BAG|");
     for (String id : bag.ids()) sb.append(id).append(':').append(bag.count(id)).append(',');
     o.add(sb.toString());
     for (Mon m : party) o.add("P" + monLine(m));
@@ -710,12 +747,15 @@ public class Game {
     for (String l : lines) {
       String[] p = l.split("\\|", -1);
       if (p[0].equals("G")) {
-        Rules r = new Rules(); r.random = p[1].equals("1"); r.nuzlocke = p[2].equals("1");
+        Rules r = new Rules(); r.nuzlocke = p[2].equals("1");
         g = new Game(r, Long.parseLong(p[6]));
         g.placeIdx = Integer.parseInt(p[3]); g.money = Integer.parseInt(p[4]); g.badges = Integer.parseInt(p[5]);
         g.starterId = p[7]; g.gameOver = p[8].equals("1"); g.battlesWon = Integer.parseInt(p[9]); g.deaths = Integer.parseInt(p[10]);
         g.bag = new Bag();
       } else if (g == null) continue;
+      else if (p[0].equals("RULES")) { g.rules = Rules.parse(p[1]); }
+      else if (p[0].equals("NAME")) { g.playerName = p[1]; g.rivalName = p[2]; g.look0 = Integer.parseInt(p[3]); g.look1 = Integer.parseInt(p[4]); g.look2 = Integer.parseInt(p[5]); g.applyNames(); }
+      else if (p[0].equals("CAUGHT")) { for (String s : p[1].split(",")) if (!s.isEmpty()) g.caught.add(s); }
       else if (p[0].equals("BAG")) { for (String e : p[1].split(",")) if (e.contains(":")) { String[] kv = e.split(":"); g.bag.add(kv[0], Integer.parseInt(kv[1])); } }
       else if (p[0].equals("PM")) g.party.add(parseMon(l.substring(1)));
       else if (p[0].equals("BM")) g.box.add(parseMon(l.substring(1)));

@@ -167,7 +167,7 @@ public class Dex {
 
   /** Los Pokémon base que pueden aparecer como salvajes / en modo aleatorio. */
   public static boolean wildEligible(Species s) {
-    return s.isBaseForm() && s.num > 0 && s.reqItems.length == 0 && s.learnMove.length > 0;
+    return s.isBaseForm() && s.num > 0 && s.reqItems.length == 0 && s.learnMove.length > 0 && !s.forme.equals("Starter") && !s.forme.equals("Partner");
   }
 
   // ---- movimientos aprendibles ----

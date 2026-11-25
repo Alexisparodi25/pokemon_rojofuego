@@ -245,7 +245,7 @@ class BattleScene extends Scene {
   }
 
   void submit(Action a) {
-    Action e = AI.choose(b, 1, !b.wild);
+    Action e = AI.choose(b, 1, !b.wild && game.rules.hardAI());
     b.turn(a, e);
     enqueue();
   }
@@ -257,13 +257,14 @@ class BattleScene extends Scene {
     if (res.fled) ms.add(0, "Escapaste del combate.");
     else if (res.won && !res.captured) ms.add(0, b.wild ? "¡Has ganado el combate!" : "¡Has derrotado a " + b.sides[1].name + "!");
     final ArrayList<Cb> steps = new ArrayList<Cb>();
+    if (res.captured && res.capturedMon != null) steps.add(new Cb() { public void run() { askNick(res.capturedMon, new Cb() { public void run() { runSteps(steps); } }); } });
     for (final Object[] l : res.learn) {
       steps.add(new Cb() { public void run() { pushScene(new LearnMoveScene((Mon) l[0], (String) l[1], new Cb() { public void run() { runSteps(steps); } })); } });
     }
     for (final Object[] ev : res.evolve) {
       steps.add(new Cb() { public void run() { pushScene(new EvolutionScene((Mon) ev[0], (Species) ev[1], new Cb() { public void run() { runSteps(steps); } })); } });
     }
-    if (game.rules.nuzlocke && res.won && !res.gameOver) {
+    if (game.rules.nuzDeath() && res.won && !res.gameOver) {
       boolean any = false; for (Mon m : b.sides[0].party) if (m.dead) any = true;
       if (any) ms.add("En Nuzlocke, los Pokémon debilitados han muerto para siempre...");
     }
@@ -306,6 +307,7 @@ class BattleScene extends Scene {
       else if (k == K_OK) {
         if (menuSel == 0) { phase = 2; moveSel = 0; }
         else if (menuSel == 1) {
+          if (!b.wild && !game.rules.battleItems) { say("Reglas: no se pueden usar objetos contra entrenadores."); return; }
           BagScene bs = new BagScene(true, b);
           bs.useCb = new StrCb() { public void run(String s) {
             if (s.isEmpty()) return;

@@ -48,6 +48,19 @@ public class MoveGen {
   }
 
   /** Un set "competitivo": mejores ataques STAB + cobertura + utilidad. Para entrenadores difíciles y modo aleatorio. */
+  static List<String> allSupported;
+  /** Cuatro movimientos totalmente aleatorios (al menos uno de daño). */
+  public static List<String> chaos(Random r) {
+    if (allSupported == null) {
+      allSupported = new ArrayList<String>();
+      for (Move m : Dex.moves.values()) if (m.supported && m.isMax.isEmpty() && m.pp > 0 && !m.id.equals("struggle")) allSupported.add(m.id);
+    }
+    List<String> out = new ArrayList<String>();
+    for (int guard = 0; guard < 200 && out.isEmpty(); guard++) { String id = allSupported.get(r.nextInt(allSupported.size())); if (Dex.mv(id).cat != 'N') out.add(id); }
+    while (out.size() < 4) { String id = allSupported.get(r.nextInt(allSupported.size())); if (!out.contains(id)) out.add(id); }
+    return out;
+  }
+
   public static List<String> smartSet(Species s, int level, Random r) {
     List<String> pool = Dex.allLearnable(s);
     // sólo lo que puede conocer a su nivel: nivel-up <= level, y movimientos de máquina a partir de nivel 20

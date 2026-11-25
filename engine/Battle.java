@@ -19,6 +19,7 @@ public class Battle {
   public Random rng;
   public List<BEvent> events = new ArrayList<BEvent>();
   public boolean wild, over, caught, escaped, hardMode = true;
+  public double catchMult = 0.85;
   public int winner = -1, turn = 0, runAttempts = 0;
   public boolean[] needSwitch = new boolean[2];
   public Mon caughtMon;
@@ -734,7 +735,7 @@ public class Battle {
     double rate = catchRateOverride > 0 ? catchRateOverride : catchRate(e.normalSp);
     double st = e.status.equals("slp") || e.status.equals("frz") ? 2.0 : (!e.status.isEmpty() ? 1.5 : 1.0);
     double a = ((3.0 * e.maxHp - 2.0 * e.hp) * rate * mult) / (3.0 * e.maxHp) * st;
-    if (hardMode) a *= 0.85;
+    a *= catchMult;
     if (a >= 255) { finishCatch(e, ballId); return true; }
     double b = 1048560.0 / Math.sqrt(Math.sqrt(16711680.0 / Math.max(1, a)));
     int shakes = 0;

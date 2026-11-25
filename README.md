@@ -20,18 +20,16 @@ y las dos **duran todo el combate** (no hay límite de 3 turnos).
 | **Megaevolución** (en combate, antes de elegir movimiento) | `M` |
 | **Dinamax / Gigamax** (ídem) | `G` |
 
-## Modos (se pueden combinar)
-- **Normal**: Kanto con los equipos de Rojo Fuego (Brock, Misty, Surge...), especies salvajes por tema de zona.
-- **Aleatorio**: iniciales, Pokémon salvajes y equipos de líderes/Alto Mando/rival aleatorios, de *todas* las generaciones
-  (se respeta la fuerza aproximada de cada rival, no aparecen legendarios fuertes a nivel bajo).
-- **Nuzlocke**: sólo capturas el primer Pokémon de cada zona (con cláusula de duplicados); si un Pokémon se debilita
-  **muere para siempre** (va al Cementerio); si no queda ninguno vivo, la partida termina.
-- **Dificultad: Difícil** (siempre):
-  - IA que calcula el daño real de cada movimiento, prioriza KOs, usa preparación/estados/trampas y **cambia a counters**.
-  - Jefes y entrenadores avanzados usan **Mega y Dinamax/Gigamax** con su as.
-  - Entrenadores con IVs/EVs, objetos y movimientos competitivos que escalan con tus medallas.
-  - **Tope de nivel** por jefe (tus Pokémon no ganan experiencia por encima del as del próximo jefe).
-  - Captura más difícil, sin huida en combates de entrenador.
+## Personalización (al empezar una partida)
+Todo se elige en **Nueva partida**:
+- **Dificultad:** *Normal* (IA sencilla, rivales más débiles), *Difícil* (IA que calcula daño y cambia a counters, jefes con Mega/Dinamax, EVs que crecen con tus medallas) o *Extremo* (rivales +3 niveles, EVs al máximo, todos pueden Megaevolucionar/Dinamaxear, captura más difícil, sin tope de nivel).
+- **Nuzlocke** con reglas a medida: sólo la primera captura de cada zona, cláusula de duplicados, muerte permanente (cada una se puede activar o no).
+- **Aleatorio** detallado: iniciales, Pokémon salvajes y entrenadores/jefes por separado; **fuerza parecida** a la original (sí/no); **habilidades** (originales / aleatorias de las 318 / aleatorias sólo con efecto en el juego); **movimientos** (por nivel / aleatorios inteligentes / totalmente aleatorios); **legendarios** (nunca / según nivel / siempre).
+- **Reglas generales:** tope de nivel, objetos en combates de entrenador, preguntar apodo al capturar.
+- **Personaje:** tu nombre, el nombre de tu rival y el color de gorra, camiseta y pelo.
+- **Apodos** para tus Pokémon al capturarlos o desde Equipo → Poner apodo.
+
+Otras mejoras: **Pokédex completa** (selecciona un Pokémon capturado: datos, habilidades, movimientos por nivel, otros movimientos, evolución y formas) y **Ayuda / Preguntas frecuentes** en el título y en el mapa.
 
 ## Taza del Centro Pokémon y Caramelo Nivelador
 En cada **Centro Pokémon** hay una **taza** (menú de la ciudad). Si interactúas con ella te da un **Caramelo Nivelador**.
@@ -79,6 +77,7 @@ pokefuego/                 <- el sketch de Processing (abre pokefuego.pde)
   pokefuego.pde            bucle principal, entrada, utilidades de dibujo
   Screens.pde              título, mapa de Kanto, equipo, mochila, tienda, cajas, Pokédex...
   BattleScene.pde          escena de combate
+  Setup.pde                nueva partida, opciones, personaje, apodos, Ayuda, Pokédex completa
   code/pokefuego-engine.jar  el motor de juego compilado (Processing lo carga solo)
   data/*.tsv               datos (generados con tools/)
 engine/                    código fuente del motor (Java, paquete pokefuego.engine)
@@ -90,6 +89,7 @@ tools/
   check.sh           simula miles de combates IA vs IA
   PlaySim.java       bot que juega partidas completas
   build_sketch.sh    compila el sketch contra core.jar sin abrir Processing
+  gen_functional.py  regenera la lista de habilidades con efecto (Effects.FUNCTIONAL)
   UiTest*.java       pruebas de interfaz bajo Xvfb
 ```
 Si modificas algo en `engine/`, ejecuta `tools/build_engine.sh` para regenerar el jar.

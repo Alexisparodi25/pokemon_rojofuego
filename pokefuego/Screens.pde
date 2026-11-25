@@ -54,6 +54,7 @@ class TitleScene extends Scene {
     ArrayList<String> l = new ArrayList<String>();
     l.add("Nueva partida");
     if (hasSave()) l.add("Continuar");
+    l.add("Ayuda");
     l.add("Salir");
     m.set(l); m.visible = l.size();
   }
@@ -78,54 +79,10 @@ class TitleScene extends Scene {
     if (k == K_OK) {
       String s = m.items.get(m.sel);
       if (s.equals("Nueva partida")) pushScene(new NewGameScene());
+      else if (s.equals("Ayuda")) pushScene(new HelpScene());
       else if (s.equals("Continuar")) {
         if (loadGame()) { stack.clear(); pushScene(new MapScene()); say("Partida cargada."); } else say("No se pudo cargar la partida.");
       } else exit();
-    }
-  }
-}
-
-// =====================================================================
-//  NUEVA PARTIDA
-// =====================================================================
-class NewGameScene extends Scene {
-  boolean random = false, nuz = false;
-  int sel = 0;
-  void draw() {
-    background(16, 20, 32);
-    txtc("NUEVA PARTIDA", width / 2, 40, fBig, color(255, 220, 120));
-    String[] names = {"Modo Aleatorio", "Modo Nuzlocke", "Dificultad", "¡Comenzar!"};
-    boolean[] on = {random, nuz, true, false};
-    for (int i = 0; i < 4; i++) {
-      float y = 110 + i * 62;
-      panelSel(150, y, 660, 54, sel == i);
-      txt(names[i], 175, y + 12, fNormal, sel == i ? color(255, 230, 140) : color(235));
-      if (i < 2) txtr(on[i] ? "[X] SÍ" : "[  ] NO", 790, y + 12, fNormal, on[i] ? color(120, 230, 140) : color(180));
-      if (i == 2) txtr("DIFÍCIL (fija)", 790, y + 12, fNormal, color(255, 120, 100));
-    }
-    panel(150, 370, 660, 220);
-    String[] d = {
-      "ALEATORIO: especies salvajes, equipos de entrenadores y los 3 iniciales son aleatorios (todas las generaciones).",
-      "NUZLOCKE: sólo capturas el primer Pokémon de cada zona; si se debilita, muere para siempre. Si todo tu equipo cae, fin.",
-      "DIFÍCIL: IA que calcula daño real y cambia a counters, jefes con Mega/Dinamax, EVs en entrenadores, tope de nivel por jefe.",
-      "Mecánicas: SÓLO Megaevolución y Dinamax/Gigamax (duran todo el combate; una por combate y bando)."};
-    textFont(fSmall); textAlign(LEFT, TOP);
-    fill(235); text(d[sel], 175, 390, 610, 80);
-    if (sel < 3) { fill(255, 220, 140); text(d[3], 175, 475, 610, 60); }
-    txt("Z/Enter: cambiar · X: volver", 175, 560, fSmall, color(170));
-  }
-  void key(int k, char c) {
-    if (k == K_UP) sel = (sel + 3) % 4;
-    else if (k == K_DOWN) sel = (sel + 1) % 4;
-    else if (k == K_BACK) popScene();
-    else if (k == K_OK || k == K_LEFT || k == K_RIGHT) {
-      if (sel == 0) random = !random;
-      else if (sel == 1) nuz = !nuz;
-      else if (sel == 3 && k == K_OK) {
-        Rules r = new Rules(); r.random = random; r.nuzlocke = nuz;
-        game = new Game(r, System.nanoTime());
-        popScene(); pushScene(new StarterScene());
-      }
     }
   }
 }
@@ -138,7 +95,7 @@ class StarterScene extends Scene {
   StarterScene() { ch = new ArrayList<String>(game.starterChoices()); }
   void draw() {
     txtc("¡Elige a tu primer Pokémon!", width / 2, 40, fBig, color(255, 220, 120));
-    if (game.rules.random) txtc("(modo aleatorio: tres iniciales al azar)", width / 2, 85, fSmall, color(200));
+    if (game.rules.randomStarters) txtc("(modo aleatorio: tres iniciales al azar)", width / 2, 85, fSmall, color(200));
     for (int i = 0; i < 3; i++) {
       Species s = Dex.sp(ch.get(i));
       float x = 170 + i * 310;
@@ -163,11 +120,11 @@ class StarterScene extends Scene {
         game.chooseStarter(id);
         stack.clear();
         pushScene(new MapScene());
-        ArrayList<String> l = new ArrayList<String>();
-        l.add("¡" + Dex.sp(id).name + " es ahora tu compañero!");
-        l.add("Tu rival Azul te desafía. ¡Ten cuidado: este viaje es DIFÍCIL!");
-        l.add("Recuerda: sólo existen la Megaevolución (con piedra) y el Dinamax. Duran todo el combate.");
-        msgs(l, null);
+        final ArrayList<String> l = new ArrayList<String>();
+        l.add("¡" + Dex.sp(id).name + " es ahora tu compañero, " + game.playerName + "!");
+        l.add("Tu rival " + game.rivalName + " te desafía. ¡Ten cuidado: este viaje es " + game.rules.difficultyName() + "!");
+        l.add("Recuerda: sólo existen la Megaevolución (con piedra) y el Dinamax. Duran todo el combate. (Mira «Ayuda» en el mapa si tienes dudas.)");
+        askNick(game.party.get(0), new Cb() { public void run() { msgs(l, null); } });
       } }, null));
     }
   }
@@ -194,6 +151,7 @@ class MapScene extends Scene {
     labels.add("Mochila"); ids.add("bag");
     labels.add("Cajas" + (game.rules.nuzlocke ? " y Cementerio" : "")); ids.add("box");
     labels.add("Pokédex"); ids.add("dex");
+    labels.add("Ayuda / Preguntas frecuentes"); ids.add("help");
     labels.add("Guardar partida"); ids.add("save");
     if (game.placeIdx < game.places.size() - 1) { labels.add(game.canAdvance() ? "Avanzar → " + game.places.get(game.placeIdx + 1).name : "(Derrota al jefe para avanzar)"); ids.add("next"); }
     if (game.placeIdx > 0) { labels.add("← Volver a " + game.places.get(game.placeIdx - 1).name); ids.add("prev"); }
@@ -224,17 +182,17 @@ class MapScene extends Scene {
       if (gym) rect(mx(p) - 11, my(p) - 11, 22, 22, 4); else ellipse(mx(p), my(p), 18, 18);
       noStroke();
       if (i == game.placeIdx) {
-        fill(255, 80, 60); float bob = sin(tick * 0.12f) * 4;
-        triangle(mx(p) - 8, my(p) - 34 + bob, mx(p) + 8, my(p) - 34 + bob, mx(p), my(p) - 20 + bob);
+        float bob = sin(tick * 0.12f) * 3;
+        drawTrainer(mx(p), my(p) - 14 + bob, 0.42f, game.look0, game.look1, game.look2);
       }
     }
-    txt("Región de Kanto", 24, 70, fSmall, color(255));
+    txt("Región de Kanto · " + game.playerName, 24, 66, fSmall, color(255));
     // barra superior
     fill(0, 120); rect(0, 0, width, 40);
     txt("$" + game.money, 16, 8, fNormal, color(255, 230, 120));
     txt("Medallas: " + game.badges + "/8", 140, 8, fNormal, color(255));
     txt("Tope de nivel: " + game.levelCap(), 290, 8, fNormal, color(255, 170, 120));
-    String mode = (game.rules.random ? "ALEATORIO " : "") + (game.rules.nuzlocke ? "NUZLOCKE " : "") + "DIFÍCIL";
+    String mode = (game.rules.isRandom() ? "ALEATORIO " : "") + (game.rules.nuzlocke ? "NUZLOCKE " : "") + game.rules.difficultyName();
     txtr(mode, width - 16, 8, fNormal, color(255, 120, 100));
     // panel derecho
     panel(600, 52, 350, 576);
@@ -242,11 +200,11 @@ class MapScene extends Scene {
     textFont(fSmall); fill(220); textAlign(LEFT, TOP); text(cur.desc, 616, 100, 318, 44);
     float yy = 150;
     txt("Nivel salvaje: " + cur.minLv + "–" + cur.maxLv, 616, yy, fSmall, color(200));
-    if (!game.rules.random && cur.theme != null && cur.theme.length > 0) {
+    if (!game.rules.randomWild && cur.theme != null && cur.theme.length > 0) {
       String th = ""; for (int i = 0; i < cur.theme.length; i++) th += (i > 0 ? ", " : "") + typeEs(cur.theme[i]);
       txt("Tipos comunes: " + th, 616, yy + 20, fSmall, color(200));
-    } else if (game.rules.random) txt("Aparece cualquier Pokémon", 616, yy + 20, fSmall, color(200));
-    if (game.rules.nuzlocke) txt(cur.encounterUsed ? "Nuzlocke: captura de la zona USADA" : "Nuzlocke: ¡primer encuentro disponible!", 616, yy + 40, fSmall, cur.encounterUsed ? color(255, 120, 100) : color(120, 230, 140));
+    } else if (game.rules.randomWild) txt("Aparece cualquier Pokémon", 616, yy + 20, fSmall, color(200));
+    if (game.rules.nuzFirst()) txt(cur.encounterUsed ? "Nuzlocke: captura de la zona USADA" : "Nuzlocke: ¡primer encuentro disponible!", 616, yy + 40, fSmall, cur.encounterUsed ? color(255, 120, 100) : color(120, 230, 140));
     m.draw(612, 215, 326, 37);
     // equipo en miniatura
     for (int i = 0; i < 6; i++) {
@@ -290,6 +248,7 @@ class MapScene extends Scene {
     else if (id.equals("bag")) pushScene(new BagScene(false, null));
     else if (id.equals("box")) pushScene(new BoxScene());
     else if (id.equals("dex")) pushScene(new DexScene());
+    else if (id.equals("help")) pushScene(new HelpScene());
     else if (id.equals("save")) saveGame();
     else if (id.equals("next")) {
       if (game.canAdvance()) { game.advance(); msg("Viajas a " + game.place().name + ".", null); }
@@ -389,10 +348,11 @@ class PartyScene extends Scene {
         popScene(); if (pick != null) pick.run(sel);
       } else {
         final Mon fm = m; final int fi = sel;
-        pushScene(new ChoiceScene(m.name(), new String[]{"Resumen", "Subir en la lista", "Dar / quitar objeto", "Mover a la caja", "Cancelar"}, new Cb[]{
+        pushScene(new ChoiceScene(m.name(), new String[]{"Resumen", "Subir en la lista", "Dar / quitar objeto", "Poner apodo", "Mover a la caja", "Cancelar"}, new Cb[]{
           new Cb() { public void run() { pushScene(new SummaryScene(fm)); } },
           new Cb() { public void run() { if (fi > 0) { game.party.remove(fi); game.party.add(fi - 1, fm); sel = fi - 1; } } },
           new Cb() { public void run() { pushScene(new GiveItemScene(fm)); } },
+          new Cb() { public void run() { pushScene(new TextInputScene("Apodo de " + fm.normalSp.name + " (vacío = quitar)", fm.nick, 12, new StrCb() { public void run(String s) { if (s != null) fm.nick = s.trim(); } })); } },
           new Cb() { public void run() {
             if (game.party.size() <= 1) { say("No puedes dejar el equipo vacío."); return; }
             game.party.remove(fm); game.box.add(fm); say(fm.name() + " fue enviado a la caja."); } },
@@ -746,12 +706,12 @@ class DexScene extends Scene {
     }
     java.util.Collections.sort(list, new java.util.Comparator<Species>() { public int compare(Species a, Species b) { return a.num != b.num ? a.num - b.num : a.name.compareTo(b.name); } });
     ArrayList<String> l = new ArrayList<String>();
-    for (Species s : list) l.add((game.dex.contains(s.id) ? "● " : "○ ") + nf(s.num, 4) + "  " + (game.dex.contains(s.id) ? s.name : "???"));
+    for (Species s : list) l.add((game.caught.contains(s.id) ? "★ " : game.dex.contains(s.id) ? "● " : "○ ") + nf(s.num, 4) + "  " + (game.dex.contains(s.id) || game.caught.contains(s.id) ? s.name : "???"));
     m.set(l); m.visible = 13;
   }
   void draw() {
     background(16, 20, 32);
-    txt("Pokédex  —  vistos " + seen + " / " + total + " (formas incluidas)", 40, 14, fBig, color(255, 220, 120));
+    txt("Pokédex  —  vistos " + seen + " · capturados " + game.caught.size() + " / " + total + "  (★ capturado)", 40, 14, fBig, color(255, 220, 120));
     panel(40, 66, 460, 540);
     m.draw(50, 76, 440, 40);
     Species s = list.get(m.sel);
@@ -767,9 +727,10 @@ class DexScene extends Scene {
       String fl = (s.mega ? "Megaevolución " : "") + (s.primal ? "Regresión primigenia " : "") + (s.gmax ? "Gigamax " : "") + (s.noDmax ? "(sin Dinamax) " : "");
       txt(fl, 540, 480, fSmall, color(255, 220, 120));
     }
-    txt("X: volver", 40, height - 28, fSmall, color(170));
+    txt("Z: ver todos los datos (capturados) · ←/→: saltar 10 · X: volver", 40, height - 28, fSmall, color(170));
   }
   void key(int k, char c) {
+    if (k == K_OK) { pushScene(new DexDetailScene(list.get(m.sel))); return; }
     if (k == K_LEFT) { for (int i = 0; i < 10; i++) m.move(K_UP); return; }
     if (k == K_RIGHT) { for (int i = 0; i < 10; i++) m.move(K_DOWN); return; }
     if (m.move(k)) return;
@@ -865,8 +826,8 @@ class VictoryScene extends Scene {
   void draw() {
     background(20, 10, 40);
     for (int i = 0; i < 60; i++) { fill(255, 200 + (i * 7) % 55, 80, 160); float x = (i * 131 + tick * 2) % width, y = (i * 71 + tick * (1 + i % 3)) % height; ellipse(x, y, 5, 5); }
-    txtc("¡CAMPEÓN DE LA LIGA POKÉMON!", width / 2, 60, fBig, color(255, 230, 120));
-    txtc(game.rules.nuzlocke ? "¡Nuzlocke completado!" : "¡Has completado el juego en modo DIFÍCIL!", width / 2, 110, fNormal, color(255));
+    txtc("¡" + game.playerName + ", CAMPEÓN DE LA LIGA POKÉMON!", width / 2, 60, fBig, color(255, 230, 120));
+    txtc(game.rules.nuzlocke ? "¡Nuzlocke completado!" : "¡Has completado el juego en dificultad " + game.rules.difficultyName() + "!", width / 2, 110, fNormal, color(255));
     for (int i = 0; i < game.party.size(); i++) {
       Mon m = game.party.get(i);
       float x = 100 + (i % 3) * 270, y = 220 + (i / 3) * 190;
