@@ -116,7 +116,7 @@ class BattleScene extends Scene {
       float slide = sendAnim[0] > 0 ? -sendAnim[0] * 8.0f : 0;
       float al = faintAnim[0] > 0 ? faintAnim[0] * 5.0f : 255.0f;
       if (v.hp[0] <= 0 && faintAnim[0] == 0) al = 0;
-      if (al > 0) drawCreature(s, 240 + ox + slide, 360 + oy + sin(tick * 0.05f + 1) * 3, 170, true, v.mega[0], v.dyna[0], al);
+      if (al > 0) drawCreature(s, 240 + ox + slide, 400 + oy + sin(tick * 0.05f + 1) * 3, 170, true, v.mega[0], v.dyna[0], al);
     }
   }
 

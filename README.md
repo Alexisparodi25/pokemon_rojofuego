@@ -33,6 +33,12 @@ y las dos **duran todo el combate** (no hay límite de 3 turnos).
   - **Tope de nivel** por jefe (tus Pokémon no ganan experiencia por encima del as del próximo jefe).
   - Captura más difícil, sin huida en combates de entrenador.
 
+## Taza del Centro Pokémon y Caramelo Nivelador
+En cada **Centro Pokémon** hay una **taza** (menú de la ciudad). Si interactúas con ella te da un **Caramelo Nivelador**.
+Dáselo a un Pokémon desde la Mochila (bolsillo *Mejoras*): calcula el **promedio de niveles de tu equipo** y sube a ese Pokémon
+hasta ese nivel (aprende los movimientos y puede evolucionar). En dificultad difícil respeta el **tope de nivel** del próximo jefe.
+La taza se rellena una vez por Centro Pokémon cada vez que consigues una **medalla nueva**.
+
 ## Megaevolución y Dinamax
 - **Mega**: el Pokémon debe llevar su **piedra mega** (las dan los jefes, los entrenadores y la tienda de Ciudad Azulona).
   Incluye las 48 megas clásicas, las 2 regresiones primigenias (Orbe Rojo/Azul) y las megas de Leyendas Z-A.
@@ -65,8 +71,7 @@ El **motor de combate es propio** y no implementa el 100 % de las mecánicas de 
   Muchos objetos "de nicho" existen pero no tienen efecto en combate.
 - **Combates 1 vs 1** (sin dobles).
 - **Idioma:** movimientos, habilidades y objetos se muestran en español con su descripción (extraídos de [WikiDex](https://www.wikidex.net/) con `tools/fetch_wikidex.py`; ~96 % de movimientos, 97 % de habilidades y 82 % de objetos; lo que falta, como las MT genéricas, queda en inglés). Los nombres de especies son los internacionales.
-- **Sin sprites oficiales** (no se pueden incluir): el juego dibuja una criatura generada por tipo. Para usar sprites reales ejecuta
-  `tools/download_sprites.sh` (descarga de PokeAPI/sprites); el juego los detecta solo en `pokefuego/data/sprites/`.
+- **Sprites:** el juego los descarga solo la primera vez que aparece cada Pokémon (hace falta internet) desde Pokémon Showdown y los guarda en `pokefuego/data/sprites/`: los de **Gen 3** (estilo Rojo Fuego) para los Pokémon 1-386 y los de **Gen 5** para megas, formas y Pokémon posteriores. Son material de Nintendo/Game Freak, por eso no están incluidos en el repositorio. Mientras llegan, o sin conexión, se dibuja una criatura generada por tipo.
 
 ## Estructura
 ```
@@ -86,7 +91,6 @@ tools/
   PlaySim.java       bot que juega partidas completas
   build_sketch.sh    compila el sketch contra core.jar sin abrir Processing
   UiTest*.java       pruebas de interfaz bajo Xvfb
-  download_sprites.sh  (opcional) descarga sprites reales
 ```
 Si modificas algo en `engine/`, ejecuta `tools/build_engine.sh` para regenerar el jar.
 

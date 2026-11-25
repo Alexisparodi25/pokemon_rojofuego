@@ -21,6 +21,7 @@ public class Items {
     add("maxether", "Éter Máximo", "Restaura los PP de un movimiento.", 2000, "pp");
     add("elixir", "Elixir", "Restaura 10 PP de todos los movimientos.", 3000, "pp");
     add("maxelixir", "Elixir Máximo", "Restaura todos los PP.", 4500, "pp");
+    add("levelcandy", "Caramelo Nivelador", "Sube al Pokémon hasta el nivel PROMEDIO de tu equipo (sin pasar el tope de nivel).", 0, "candy");
     add("rarecandy", "Caramelo Raro", "Sube un nivel (sin pasar del tope).", 0, "candy");
     add("xattack", "Ataque X", "+2 Ataque en combate.", 500, "x");
     add("xdefense", "Defensa X", "+2 Defensa en combate.", 550, "x");

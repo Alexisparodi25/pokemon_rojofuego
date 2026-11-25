@@ -536,6 +536,42 @@ public class Game {
     while (party.size() < 1 && !box.isEmpty()) { for (Mon m : box) if (m.alive()) { box.remove(m); party.add(m); break; } if (party.isEmpty()) break; }
   }
 
+  // ------------------------------------------------------------
+  //  Taza del Centro Pokémon y Caramelo Nivelador
+  // ------------------------------------------------------------
+  public int avgLevel() {
+    if (party.isEmpty()) return 1;
+    int s = 0; for (Mon m : party) s += m.level;
+    return Math.round(s / (float) party.size());
+  }
+
+  /** Nivel al que subiría el caramelo: promedio del equipo, sin pasar el tope de nivel. */
+  public int candyTarget() { return Math.min(Math.min(avgLevel(), levelCap()), 100); }
+
+  public boolean cupAvailable() { Place p = place(); return p.center && p.cupAt != badges; }
+
+  /** Saca el caramelo de la taza (una vez por Centro Pokémon cada vez que consigues una medalla nueva). */
+  public boolean takeFromCup() {
+    if (!cupAvailable()) return false;
+    place().cupAt = badges; bag.add("levelcandy", 1); return true;
+  }
+
+  /** Sube a m hasta el nivel promedio del equipo. null si no tendría efecto. */
+  public Result useLevelCandy(Mon m) {
+    int target = candyTarget();
+    if (!m.alive() || m.level >= target) return null;
+    Result r = new Result();
+    int from = m.level;
+    int oldMax = m.maxHp;
+    m.level = target;
+    m.exp = Math.max(m.exp, Mon.expFor(m.level));
+    m.recalc(false); m.hp = Math.min(m.maxHp, m.hp + (m.maxHp - oldMax));
+    r.msgs.add("¡" + m.name() + " subió del nivel " + from + " al nivel " + target + "!");
+    for (int lv = from + 1; lv <= target; lv++) for (String mv : m.newMovesAt(lv)) r.learn.add(new Object[]{m, mv});
+    if (!m.hasItem("everstone")) { Evo e = m.checkEvolution(false); if (e != null) { Species to = Dex.sp(e.to); if (to != null) r.evolve.add(new Object[]{m, to}); } }
+    return r;
+  }
+
   public void healAll() { for (Mon m : party) m.fullHeal(); }
 
   // ------------------------------------------------------------
@@ -657,6 +693,7 @@ public class Game {
     sb = new StringBuilder("PL|");
     for (Place p : places) sb.append(p.encounterUsed ? 1 : 0).append(p.boss != null && p.boss.done ? 1 : 0).append(trainerBits(p)).append(',');
     o.add(sb.toString());
+    sb = new StringBuilder("CUP|"); for (Place p : places) sb.append(p.cupAt).append(','); o.add(sb.toString());
     sb = new StringBuilder("E4|");
     Place last = places.get(places.size() - 1);
     for (Trainer t : last.bossChain) sb.append(t.done ? 1 : 0);
@@ -691,6 +728,7 @@ public class Game {
             for (int k = 0; k < pl.trainers.size() && k + 2 < ps[i].length(); k++) pl.trainers.get(k).done = ps[i].charAt(k + 2) == '1'; }
         }
       }
+      else if (p[0].equals("CUP")) { String[] cs = p[1].split(","); for (int i = 0; i < cs.length && i < g.places.size(); i++) if (!cs[i].isEmpty()) g.places.get(i).cupAt = Integer.parseInt(cs[i]); }
       else if (p[0].equals("E4")) { Place last = g.places.get(g.places.size() - 1); for (int i = 0; i < p[1].length() && i < last.bossChain.size(); i++) last.bossChain.get(i).done = p[1].charAt(i) == '1'; }
       else if (p[0].equals("OWN")) { for (String s : p[1].split(",")) if (!s.isEmpty()) g.owned.add(s); }
       else if (p[0].equals("DEX")) { for (String s : p[1].split(",")) if (!s.isEmpty()) g.dex.add(s); }

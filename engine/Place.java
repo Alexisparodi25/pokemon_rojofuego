@@ -10,6 +10,7 @@ public class Place {
   public Trainer boss;             // líder / rival / alto mando (hay que vencerlo para avanzar)
   public List<Trainer> bossChain = new ArrayList<Trainer>();   // Alto Mando: se enfrentan en orden
   public int bossStep;
+  public int cupAt = -1;           // medallas que tenías la última vez que sacaste el caramelo de la taza
   public boolean encounterUsed;    // Nuzlocke: primera captura por zona
   public boolean encounterFailed;
   public int mapX, mapY;

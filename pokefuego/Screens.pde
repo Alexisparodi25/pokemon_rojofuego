@@ -8,6 +8,19 @@ interface StrCb { void run(String s); }
 
 String abEs(String n) { AbilityDef a = Dex.ab(n); return a == null ? n : a.dn(); }
 
+/** Muestra mensajes, y luego movimientos nuevos y evoluciones de un resultado (caramelos, etc.). */
+void runResult(final Game.Result r, final Cb after) {
+  final ArrayList<Cb> steps = new ArrayList<Cb>();
+  for (final Object[] l : r.learn) steps.add(new Cb() { public void run() { pushScene(new LearnMoveScene((Mon) l[0], (String) l[1], new Cb() { public void run() { nextStep(steps, after); } })); } });
+  for (final Object[] ev : r.evolve) steps.add(new Cb() { public void run() { pushScene(new EvolutionScene((Mon) ev[0], (Species) ev[1], new Cb() { public void run() { nextStep(steps, after); } })); } });
+  msgs(new ArrayList<String>(r.msgs), new Cb() { public void run() { nextStep(steps, after); } });
+}
+
+void nextStep(ArrayList<Cb> steps, Cb after) {
+  if (steps.isEmpty()) { if (after != null) after.run(); return; }
+  steps.remove(0).run();
+}
+
 boolean hasSave() { return new File(sketchPath("save.txt")).exists(); }
 
 void saveGame() {
@@ -175,7 +188,7 @@ class MapScene extends Scene {
     if (!p.trainers.isEmpty()) { labels.add("Entrenadores (" + pend + " pendientes)"); ids.add("trainers"); }
     Trainer b = game.nextBoss();
     if (b != null) { labels.add("★ Desafiar a " + b.full()); ids.add("boss"); }
-    if (p.center) { labels.add("Centro Pokémon (curar)"); ids.add("heal"); }
+    if (p.center) { labels.add("Centro Pokémon (curar)"); ids.add("heal"); labels.add(game.cupAvailable() ? "☕ Taza del Centro (¡hay un caramelo!)" : "☕ Taza del Centro (vacía)"); ids.add("cup"); }
     if (p.shop) { labels.add("Tienda"); ids.add("shop"); }
     labels.add("Equipo"); ids.add("party");
     labels.add("Mochila"); ids.add("bag");
@@ -268,6 +281,9 @@ class MapScene extends Scene {
     } else if (id.equals("heal")) {
       game.healAll();
       msg("¡Tu equipo está como nuevo!" + (game.rules.nuzlocke ? " (los Pokémon caídos no vuelven)" : ""), null);
+    } else if (id.equals("cup")) {
+      if (game.takeFromCup()) msg("Dentro de la taza hay un caramelo brillante. ¡Recibiste un Caramelo Nivelador!  Dáselo a un Pokémon desde la Mochila: lo sube hasta el nivel PROMEDIO de tu equipo (promedio actual: " + game.avgLevel() + ").", null);
+      else msg("La taza está vacía. Dicen que se rellena cuando consigues una medalla nueva.", null);
     } else if (id.equals("shop")) {
       pushScene(new ShopMenuScene());
     } else if (id.equals("party")) pushScene(new PartyScene(0, null, null));
@@ -343,7 +359,7 @@ class PartyScene extends Scene {
       panelSel(x, y, 440, 138, i == sel);
       if (i >= l.size()) continue;
       Mon m = l.get(i);
-      drawCreature(m.sp, x + 60, y + 70, 70, false, m.megaed, m.dynamaxed, m.alive() ? 255.0f : 100.0f);
+      drawCreature(m.sp, x + 60, y + 82, 54, false, m.megaed, m.dynamaxed, m.alive() ? 255.0f : 100.0f);
       txt(m.name() + (m.dead ? "  †" : ""), x + 120, y + 8, fNormal, color(255));
       txt("Nv " + m.level, x + 120, y + 36, fSmall, color(230));
       if (!m.status.isEmpty()) { fill(statusColor(m.status)); rect(x + 190, y + 38, 40, 18, 6); txtc(statusEs(m.status), x + 210, y + 39, fSmall, color(255)); }
@@ -581,6 +597,13 @@ class BagScene extends Scene {
   }
   void useOutside(String id, int i) {
     Mon mo = game.party.get(i);
+    if (id.equals("levelcandy")) {
+      Game.Result r = game.useLevelCandy(mo);
+      if (r == null) { say("No tendrá efecto: " + mo.name() + " ya está en el nivel promedio (" + game.avgLevel() + ") o en el tope (" + game.levelCap() + ")."); return; }
+      game.bag.remove(id, 1); build();
+      runResult(r, null);
+      return;
+    }
     if (id.equals("rarecandy")) {
       if (mo.level >= game.levelCap() || mo.level >= 100) { say("Tope de nivel alcanzado."); return; }
       game.bag.remove(id, 1);

@@ -25,6 +25,7 @@ Game game;
 ArrayList<Scene> stack = new ArrayList<Scene>();
 PFont fNormal, fSmall, fBig, fTitle;
 HashMap<String, PImage> spriteCache = new HashMap<String, PImage>();
+HashMap<PImage, Integer> spriteK = new HashMap<PImage, Integer>();
 HashSet<String> spriteMissing = new HashSet<String>();
 int tick = 0;
 String toast = "";
@@ -198,18 +199,68 @@ int statusColor(String s) {
 }
 
 // ---- sprites ----
+// Se descargan una vez (Pokémon Showdown: Gen 3 = estilo Rojo Fuego; Gen 5 para megas, formas y Pokémon posteriores)
+// a data/sprites/ y se reutilizan. Mientras llegan, o sin internet, se dibuja una criatura generada.
+int spriteActive = 0;
+HashSet<String> spritePending = new HashSet<String>();
+
+String spriteName(Species s) {
+  String b = Dex.toId(s.baseSpecies), f = Dex.toId(s.forme);
+  return f.isEmpty() ? b : b + "-" + f;
+}
+
+String[] spriteUrls(Species s, boolean back) {
+  String n = spriteName(s), u = "https://play.pokemonshowdown.com/sprites/";
+  ArrayList<String> l = new ArrayList<String>();
+  if (s.num <= 386 && !s.mega && !s.primal && !s.gmax) l.add(u + (back ? "gen3-back/" : "gen3/") + n + ".png");
+  l.add(u + (back ? "gen5-back/" : "gen5/") + n + ".png");
+  if (!back) l.add(u + "home/" + n + ".png");
+  return l.toArray(new String[0]);
+}
+
+PImage scaleNearest(PImage im, int k) {
+  PImage o = createImage(im.width * k, im.height * k, ARGB);
+  im.loadPixels(); o.loadPixels();
+  for (int y = 0; y < o.height; y++) for (int x = 0; x < o.width; x++) o.pixels[y * o.width + x] = im.pixels[(y / k) * im.width + (x / k)];
+  o.updatePixels();
+  return o;
+}
+
 PImage spriteFor(Species s, boolean back) {
-  String key = (back ? "b" : "f") + s.num;
+  String key = (back ? "b_" : "f_") + spriteName(s);
   if (spriteCache.containsKey(key)) return spriteCache.get(key);
-  if (spriteMissing.contains(key)) return null;
-  PImage im = null;
-  try {
-    File f = new File(sketchPath("data/sprites/" + (back ? "back/" : "") + s.num + ".png"));
-    if (f.exists()) im = loadImage(f.getAbsolutePath());
-  } catch (Exception e) { }
-  if (im == null) { spriteMissing.add(key); return null; }
-  spriteCache.put(key, im);
-  return im;
+  if (spriteMissing.contains(key)) return back ? spriteFor(s, false) : null;
+  File f = new File(sketchPath("data/sprites/" + key + ".png"));
+  if (f.exists()) {
+    PImage im = loadImage(f.getAbsolutePath());
+    if (im != null && im.width > 0) {
+      int k = max(1, min(4, round(240.0f / max(im.width, im.height))));
+      im = scaleNearest(im, k);
+      spriteK.put(im, k);
+      spriteCache.put(key, im);
+      return im;
+    }
+    f.delete();
+  }
+  fetchSprite(key, spriteUrls(s, back), f);
+  return back ? spriteFor(s, false) : null;
+}
+
+void fetchSprite(final String key, final String[] urls, final File out) {
+  synchronized (spritePending) {
+    if (spritePending.contains(key) || spriteActive >= 4) return;
+    spritePending.add(key); spriteActive++;
+  }
+  new Thread(new Runnable() { public void run() {
+    boolean ok = false;
+    for (String u : urls) {
+      try {
+        byte[] b = loadBytes(u);
+        if (b != null && b.length > 80) { out.getParentFile().mkdirs(); saveBytes(out, b); ok = true; break; }
+      } catch (Exception e) { }
+    }
+    synchronized (spritePending) { spriteActive--; spritePending.remove(key); if (!ok) spriteMissing.add(key); }
+  } }).start();
 }
 
 /** Dibuja un Pokémon: sprite PNG si existe (data/sprites), si no una criatura procedural por tipo. */
@@ -233,8 +284,14 @@ void drawCreature(Species s, float cx, float cy, float size, boolean back, boole
   scale(sc);
   if (im != null) {
     tint(255, alpha);
-    float k = size / max(im.width, im.height) * 1.9f;
-    imageMode(CENTER); image(im, 0, 0, im.width * k, im.height * k); imageMode(CORNER);
+    Integer kk = spriteK.get(im);
+    float k = kk == null ? 1.0f : kk.floatValue();
+    float w0 = im.width / k, h0 = im.height / k;            // tamaño original del sprite
+    float zoom = size / 48.0f;                               // Gen 3 (64 px) -> ~2,5x con size=120
+    if (max(w0, h0) > 120) zoom *= 96.0f / max(w0, h0);      // arte grande (Home): reducir
+    float w = w0 * zoom, h = h0 * zoom;
+    imageMode(CORNER);
+    image(im, -w / 2, size * 0.5f - h, w, h);
     noTint();
   } else {
     int c1 = typeColor(s.t1), c2 = s.t2.isEmpty() ? lerpColor(c1, color(255), 0.35f) : typeColor(s.t2);
